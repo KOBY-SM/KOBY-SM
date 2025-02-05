@@ -1,65 +1,68 @@
-const { generateWAMessageFromContent, prepareWAMessageMedia, proto } = (await import('baileys')).default;
-import yts from 'yt-search'
-import axios from 'axios'
+import yts from 'yt-search';
+import { prepareWAMessageMedia, generateWAMessageFromContent } from 'baileys';
 
-let handler = async (m, { conn, usedPrefix, command, text }) => {
-   if (!text) return m.reply(`${usedPrefix + command} stereo love`)
-   
-   try {
-      m.reply(wait)
-      let search = await yts(text)
-      let video = search.all[0]
-      let linkyt = video.url
-      let teksnya = `ᴛɪᴛʟᴇ : *${video.title}*\nᴠɪᴇᴡs : *${video.views}*\nᴅᴜʀᴀᴛɪᴏɴ : *${video.timestamp}*\nᴜᴘʟᴏᴀᴅᴇᴅ : *${video.ago}*\nᴜʀʟ : *${linkyt}*`
-
-      const { imageMessage } = await prepareWAMessageMedia(
-            {
-                image: { url: video.thumbnail }
-            },
-            { upload: conn.waUploadToServer }
-        );
-
-        const messageContent = {
-            buttonsMessage: {
-                contentText: teksnya,
-                footerText: global.namabotbot,
-                buttons: [
-                    {
-                        buttonId: `${linkyt}`,
-                        buttonText: { displayText: 'Video 🎬' },
-                        type: 1
-                    },
-                    {
-                        buttonId: `.ytmp3 ${linkyt}`,
-                        buttonText: { displayText: 'Audio 🎧' },
-                        type: 1
-                    }
-                ],
-                headerType: 4,
-                imageMessage: imageMessage,
-            }
-        };
-
-        const message = generateWAMessageFromContent(
-            m.chat,
-            {
-                ephemeralMessage: {
-                    message: messageContent
-                }
-            },
-            { userJid: conn.user.id }
-        );
-
-        await conn.relayMessage(m.chat, message.message, { messageId: message.key.id });
-    } catch (error) {
-        console.error("Gagal mengirim pesan button dengan gambar:", error);
-        await conn.sendMessage(m.chat, { text: "Maaf, terjadi kesalahan saat mengirim pesan." });
+const handler = async (m, { command, usedPrefix, conn, text }) => {
+    if (!text) {
+        await conn.sendMessage(m.chat, { text: `البحث في يوتيب ` }, { quoted: m });
+        await conn.sendMessage(m.chat, { react: { text: '🚀', key: m.key } });
+        return;
     }
+
+    await conn.sendMessage(m.chat, { react: { text: '⏰️', key: m.key } });
+
+    try {
+        const yt_play = await yts(text);
+        const video = yt_play.videos[0];
+
+        if (!video) {
+            throw new Error("لم يتم العثور على نتائج.");
+        }
+
+        const dataMessage = `*❲ نتيجة البحث عن : ${text} ❳*\n\n➤ العنوان : ${video.title}\n➤ النشر : ${video.ago}\n➤ الطول : ${formatDuration(video.duration.seconds)}\n➤ الرابط : ${video.url}\n➤ المشاهدات : ${formatNumber(video.views)}\n➤ القناة : ${video.author.name}`.trim();
+
+        const messa = await prepareWAMessageMedia({ image: { url: video.thumbnail } }, { upload: conn.waUploadToServer });
+
+        let msg = generateWAMessageFromContent(m.chat, {
+            viewOnceMessage: {
+                message: {
+                    interactiveMessage: {
+                        body: { text: dataMessage },
+                        footer: { text: `© ${global.wm}`.trim() },
+                        header: {
+                            hasMediaAttachment: true,
+                            imageMessage: messa.imageMessage,
+                        },
+                        nativeFlowMessage: {
+                            buttons: [
+                                { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '〘 🎧 صــوتي 〙', id: `${usedPrefix}ytmp3 ${video.url}` }) },
+                                { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '〘 🎥 فيــديو 〙', id: `${video.url}` }) }
+                            ],
+                            messageParamsJson: "",
+                        },
+                    },
+                },
+            },
+        }, { userJid: conn.user.jid, quoted: m });
+
+        await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } });
+        await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id });
+
+    } catch (error) {
+        await conn.sendMessage(m.chat, { text: `*❲ ❗ ❳ حدث خطأ أثناء البحث .*\nيرجى تجربة إدخال نص مختلف أو رابط مباشر.` }, { quoted: m });
+        await conn.sendMessage(m.chat, { react: { text: '❌', key: m.key } });
+    }
+};
+
+handler.command = /^(play)$/i;
+export default handler;
+
+function formatNumber(number) {
+    return number.toLocaleString('ar-EG');
 }
 
-handler.help = ['play'].map(v => v + ' <pencarian>');
-handler.tags = ['downloader'];
-handler.command = /^play$/i;
-handler.limit = false 
-
-export default handler
+function formatDuration(seconds) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    return `${h ? h + ' ساعة ' : ''}${m ? m + ' دقيقة ' : ''}${s ? s + ' ثانية' : ''}`.trim();
+}
