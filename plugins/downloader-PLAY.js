@@ -1,35 +1,56 @@
-import fetch from 'node-fetch'; // تأكد من تثبيت node-fetch
+import fetch from 'node-fetch'
+import ffmpeg from 'fluent-ffmpeg'
+import fs from 'fs'
 
-const handler = async (m, { conn, text }) => {
-  if (!text) {
-    throw `\`\`\`[ 🌴 ] من فضلك أدخل رابط يوتيوب. مثال:\n .yt https://www.youtube.com/watch?v=example\`\`\``;
-  }
-
+let handler = async (m, { conn, command, text, usedPrefix }) => {
+  if (!text) return conn.reply(m.chat, '❀ Ingresa un link de un video de youtube', m)
+  //si borras creditos eri gei 👀
+m.reply(wait)
   try {
-    // تنزيل المقطع الصوتي باستخدام الرابط المباشر
-    const response = await fetch(`https://api.siputzx.my.id/api/dl/youtube/mp3?url=${text}`);
-    const result = await response.json();
+    let api = await fetch(`https://api.davidcyriltech.my.id/download/ytmp3?url=${text}`)
+    let json = await api.json()
+    let { title, download_url } = json.result
 
-    if (!result || !result.data) {
-      throw "لم يتم الحصول على رابط التنزيل.";
-    }
+    // Descargar الملف الصوتي
+    const response = await fetch(download_url)
+    const buffer = await response.buffer()
 
-    const audioUrl = result.data;
+    // حفظ الصوت في ملف مؤقت
+    const tempFile = `temp_${Date.now()}.mp3`
+    fs.writeFileSync(tempFile, buffer)
 
-    // إرسال المقطع الصوتي مباشرة
+    // تحويل الصوت إلى 48kbps باستخدام ffmpeg
+    const outputFile = `output_${Date.now()}.mp3`
+    
+    await new Promise((resolve, reject) => {
+      ffmpeg(tempFile)
+        .audioBitrate(64) // تقليل معدل البت إلى 48kbps
+        .audioChannels(1) // تحويل الصوت إلى قناة واحدة (Mono)
+        .audioFrequency(22050) // تقليل معدل العينات إلى 22.05kHz
+        .save(outputFile) // حفظ الملف المحول
+        .on('end', resolve)
+        .on('error', reject)
+    })
+
+    // إرسال الملف الصوتي المحول
+    const audioBuffer = fs.readFileSync(outputFile)
     await conn.sendMessage(m.chat, {
-      audio: { url: audioUrl },
-      mimetype: "audio/mpeg",
-      ptt: false, // لتحويل الصوت إلى ملاحظة صوتية (PTT)
-    }, { quoted: m });
+      audio: audioBuffer,
+      mimetype: 'audio/mpeg',
+      fileName: `${title}.mp3`,
+      caption: `🎶 *${title}*`,
+    }, { quoted: m })
+
+    // تنظيف الملفات المؤقتة
+    fs.unlinkSync(tempFile)
+    fs.unlinkSync(outputFile)
 
   } catch (error) {
-    console.error(error);
-    throw "حدث خطأ أثناء معالجة طلبك.";
+    console.error(error)
+    m.reply('❌ حدث خطأ أثناء تحميل الأغنية. حاول مرة أخرى.')
   }
-};
+}
 
-handler.command = handler.help = ['ytmp3'];
-handler.tags = ['downloader'];
+handler.command = ['ytmp3']
 
-export default handler;
+export default handler
