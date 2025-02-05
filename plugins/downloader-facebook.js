@@ -1,44 +1,56 @@
 import axios from 'axios';
 
-let handler = async (m, { conn, text, args, command, usedPrefix }) => {
-  if (!args[0]) {
-    return m.reply(`🛡 يرجى تقديم رابط Instagram صالح.\n• *الاستخدام:* ${usedPrefix}${command} <الرابط>`);
-  }
-
-  const url = args[0];
-  if (
-    !(
-      url.includes('instagram.com/p/') ||
-      url.includes('instagram.com/reel/') ||
-      url.includes('instagram.com/tv/')
-    )
-  ) {
-    return m.reply('❌ الرابط غير صالح! فقط منشورات Instagram أو Reels أو TV يمكن معالجتها.');
-  }
-
-  m.reply('⏳ جاري معالجة الرابط...');
-
-  try {
-    const { data } = await axios.get(`https://weeb-api.vercel.app/insta?url=${url}`);
-    if (data.urls && data.urls.length > 0) {
-      for (const { url: mediaUrl, type } of data.urls) {
-        const mediaType = type === 'image' ? 'image' : 'video';
-        await conn.sendMessage(m.chat, {
-          [mediaType]: { url: mediaUrl },
-          caption: '✔️ تم استخراج الوسائط بنجاح.',
-        }, { quoted: m });
-      }
-    } else {
-      return m.reply('❌ لم يتم العثور على بيانات وسائط للرابط المقدم.');
+let handler = async (m, { conn, usedPrefix, args, command, text }) => {
+    if (!args[0]) {
+        
+        return conn.reply(m.chat, `🪐 Ingresa un link de Instagram`, m);
     }
-  } catch (error) {
-    console.error(error);
-    return m.reply(`❌ حدث خطأ أثناء معالجة الرابط: ${error.message}`);
-  }
+
+    if (!args[0].match(new RegExp('^https?:\\/\\/www\\.instagram\\.com\\/([a-zA-Z0-9_-]+)\\/.*$'))) {
+        
+        return conn.reply(m.chat, `🪐 Verifica que sea un link válido de Instagram`, m);
+    }
+
+    try {
+        
+        let api = await axios.get(`https://apidl.asepharyana.cloud/api/downloader/igdl?url=${args[0]}`);
+
+        let processedUrls = new Set();
+
+        for (let a of api.data.data) {
+            if (!processedUrls.has(a.url)) {
+                processedUrls.add(a.url);
+
+                          if (a.url.includes('jpg') || a.url.includes('png') || a.url.includes('jpeg') || a.url.includes('webp') || a.url.includes('heic') || a.url.includes('tiff') || a.url.includes('bmp')) {
+                    await conn.sendMessage(
+                        m.chat,
+                        { 
+                            image: { url: a.url }, 
+                            caption: '*✔️Downloader instagram.*' 
+                        },
+                        { quoted: m }
+                    );
+                } else {
+                    await conn.sendMessage(
+                        m.chat,
+                        { 
+                            video: { url: a.url }, 
+                            caption: '*✔️Downloader instagram.*' 
+                        },
+                        { quoted: m }
+                    );
+                }
+            }
+        }
+        
+    } catch (error) {
+        console.log(error);
+        
+    }
 };
 
-handler.help = ['ig <url>'];
-handler.tags = ['downloader'];
-handler.command = /^(ig)$/i;
+handler.help = ['ig *<link>*'];
+handler.tags = ['dl'];
+handler.command = /^(ig|igdl|instagram)$/i;
 
 export default handler;
