@@ -5,44 +5,16 @@ on:
     branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
-  schedule:
+schedule:
     - cron: "0 */6 * * *"  # تشغيل كل 6 ساعات
 
 jobs:
+
   build:
+
     runs-on: ubuntu-latest
 
-    permissions:
-      actions: write  # مطلوب لحذف `workflows` السابقة
-
     steps:
-      # حذف `workflows` السابقة أولاً
-      - name: Delete Previous Workflows
-        run: |
-          WORKFLOWS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/runs" \
-            | jq -r '.workflow_runs[] | select(.status == "completed" and .id != ${{ github.run_id }}) | .id')
-          
-          if [[ -n "$WORKFLOWS" ]]; then
-            for workflow_id in $WORKFLOWS; do
-              echo "Deleting workflow run ID: $workflow_id"
-              curl -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-                "https://api.github.com/repos/${{ github.repository }}/actions/runs/$workflow_id"
-            done
-          else
-            echo "No previous workflows to delete."
-          fi
-        continue-on-error: true  # منع التوقف إذا لم يكن هناك `workflows`
-
-      # استنساخ المستودع
-      - uses: actions/checkout@v4
-
-      # تحليل ملف `Dockerfile`
-      - name: Lint Dockerfile
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: Dockerfile
-
-      # بناء الصورة بعد التحقق من صحة `Dockerfile`
-      - name: Build the Docker image
-        run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+    - uses: actions/checkout@v4
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
