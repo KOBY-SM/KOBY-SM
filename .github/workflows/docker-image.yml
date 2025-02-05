@@ -1,20 +1,81 @@
-name: Docker Image CI
-
+name: Deploy
 on:
   push:
-    branches: [ "master" ]
+    branches: [master]
   pull_request:
-    branches: [ "master" ]
-schedule:
-    - cron: "0 */6 * * *"  # تشغيل كل 6 ساعات
+    branches: [master]
+  schedule:
+    - cron: "0 */6 * * *" # تشغيل كل 6 ساعات
 
 jobs:
-
-  build:
-
+  deploy:
+    name: Deploy
     runs-on: ubuntu-latest
 
+    permissions:
+      id-token: write  # مطلوب للمصادقة مع Deno Deploy
+      contents: read   # مطلوب لاستنساخ المستودع
+      actions: write   # مطلوب لإلغاء تشغيل `workflows` السابقة
+
     steps:
-    - uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+      # استنساخ المستودع
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      # تثبيت المكتبات المطلوبة
+      - name: Install Required Libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg imagemagick webp
+          sudo apt-get upgrade -y
+
+      # تثبيت nvm واستخدام Node.js 20 (لتجنب مشاكل `canvas`)
+      - name: Install Node.js 20
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.4/install.sh | bash
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          nvm install 20
+          nvm use 20
+          node -v
+
+      # تفعيل الكاش لتسريع تثبيت `node_modules`
+      - name: Cache node_modules
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      # تثبيت الحزم
+      - name: Install Dependencies
+        run: npm install
+
+      # إلغاء تشغيل `workflows` السابقة
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+          access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      # حذف `workflows` السابقة لتوفير مساحة
+      - name: Delete Previous Workflows
+        run: |
+          WORKFLOWS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs" \
+            | jq -r '.workflow_runs[] | select(.status == "completed" and .id != ${{ github.run_id }}) | .id')
+          
+          if [[ -n "$WORKFLOWS" ]]; then
+            for workflow_id in $WORKFLOWS; do
+              echo "Deleting workflow run ID: $workflow_id"
+              curl -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                "https://api.github.com/repos/${{ github.repository }}/actions/runs/$workflow_id"
+            done
+          else
+            echo "No previous workflows to delete."
+          fi
+        continue-on-error: true  # لمنع التوقف إذا لم يكن هناك أي `workflows`
+
+      # تشغيل المشروع
+      - name: Start Project
+        run: npm run start
