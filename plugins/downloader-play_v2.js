@@ -47,9 +47,9 @@ let handler = async (m, { conn, args }) => {
   }
 };
 
-handler.help = ['play2 *<texto>*'];
-handler.tags = ['youtube'];
-handler.command = ['pl2'];
+handler.help = ['play *<texto>*'];
+handler.tags = ['downloader'];
+handler.command = ['play'];
 
 export default handler;
 
