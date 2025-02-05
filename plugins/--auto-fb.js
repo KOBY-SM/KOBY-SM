@@ -39,7 +39,7 @@ let handler = async (m, { conn }) => {
         // إرسال ملف MP3
         await conn.sendMessage(
             m.chat,
-            { audio: mp3Buffer, fileName: `output.mp3`, mimetype: 'audio/mpeg', ptt: true },
+            { audio: mp3Buffer, fileName: `output.mp3`, mimetype: 'audio/mpeg', ptt: false },
             { quoted: m }
         );
 
