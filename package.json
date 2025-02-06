@@ -41,7 +41,7 @@
     "@vitalets/google-translate-api": "^8.0.0",
 "whatsapp-web.js" :"*",
    
-     "baileys":"github:AxellNetwork/Baileys",
+     "baileys":"github:ds6/bails",
     "@whiskeysockets/baileys": "github:ds6/bails",
     "acrcloud": "^1.4.0",
     "aptoide-scraper": "github:DIEGO-OFC/dv-aptoide-scraper",
