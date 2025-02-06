@@ -42,7 +42,7 @@
 "whatsapp-web.js" :"*",
    
      "baileys":"github:AxellNetwork/Baileys",
-    "@whiskeysockets/baileys": "npm:ds6/bails",
+    "@whiskeysockets/baileys": "github:ds6/bails",
     "acrcloud": "^1.4.0",
     "aptoide-scraper": "github:DIEGO-OFC/dv-aptoide-scraper",
     "awesome-phonenumber": "^2.68.0",
