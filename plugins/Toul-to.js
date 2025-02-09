@@ -1,5 +1,10 @@
 import fs from 'fs';
 import ffmpeg from 'fluent-ffmpeg';
+import ffmpegPath from 'ffmpeg-static';  // استيراد ffmpeg-static
+import path from 'path';
+
+// تحديد المسار لـ ffmpeg
+ffmpeg.setFfmpegPath(ffmpegPath);
 
 const handler = async (m, { conn }) => {
   const q = m.quoted || m;
@@ -16,13 +21,11 @@ const handler = async (m, { conn }) => {
     // Convert video/audio to MP3
     await convertToMp3(inputPath, outputPath);
 
-    // Read the MP3 file
+    // Send the MP3 file as a PTT (Voice Message)
     const mp3Buffer = fs.readFileSync(outputPath);
-
-    // Send the MP3 file as a PTT (Voice Note)
     await conn.sendMessage(
       m.chat,
-      { audio: mp3Buffer, fileName: `output.mp3`, mimetype: 'audio/mpeg', ptt: true },
+      { audio: mp3Buffer, fileName: `output.mp3`, mimetype: 'audio/mpeg', ptt: true }, // إرسال كـ PTT
       { quoted: m }
     );
 
@@ -30,12 +33,14 @@ const handler = async (m, { conn }) => {
     fs.unlinkSync(inputPath);
     fs.unlinkSync(outputPath);
   } else {
-    throw '> *_♻️تحويل فيديو أو أوديو 🩶 إلى مقطع صوتي♻️_*';
+    throw '> *_🌼تحويل فيديو أو أوديو إلى مقطع صوتي🌼_*';
   }
 };
-handler.help = ['to']
-handler.tags = ['Toul']
+
+handler.help = ['tomp3'];
+handler.tags = ['Toul'];
 handler.command = /^to$/i;
+
 export default handler;
 
 async function getUniqueFileName(basePath, extension) {
