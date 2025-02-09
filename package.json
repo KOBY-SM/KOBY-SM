@@ -68,6 +68,7 @@
     "express": "^4.17.3",
     "file-type": "^17.1.1",
     "fluent-ffmpeg": "^2.1.2",
+"ffmpeg-static":"*",
     "fluid-spotify.js": "*",
 "puppeteer": "*",
 "undici" : "*",
