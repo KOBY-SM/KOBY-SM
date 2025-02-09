@@ -23,12 +23,7 @@ jobs:
         uses: actions/checkout@v4
 
       # تثبيت المكتبات المطلوبة
-      - name: Install Required Libraries
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg imagemagick webp
-          sudo apt-get upgrade -y
-
+      
       # تثبيت nvm واستخدام Node.js 20 (لتجنب مشاكل `canvas`)
       - name: Install Node.js 20
         run: |
