@@ -38,7 +38,7 @@ const handler = async (m, { conn }) => {
 };
 handler.help = ['tomp3']
 handler.tags = ['Toul']
-handler.command = /^tom$/i;
+handler.command = /^tomp3$/i;
 export default handler;
 
 async function getUniqueFileName(basePath, extension) {
