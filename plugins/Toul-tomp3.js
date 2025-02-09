@@ -1,6 +1,10 @@
 import fs from 'fs';
 import ffmpeg from 'fluent-ffmpeg';
+import ffmpegPath from 'ffmpeg-static';  // استيراد ffmpeg-static
 import path from 'path';
+
+// تحديد المسار لـ ffmpeg
+ffmpeg.setFfmpegPath(ffmpegPath);
 
 const handler = async (m, { conn }) => {
   const q = m.quoted || m;
@@ -34,7 +38,7 @@ const handler = async (m, { conn }) => {
 };
 handler.help = ['tomp3']
 handler.tags = ['Toul']
-handler.command = /^tomp3$/i;
+handler.command = /^tom$/i;
 export default handler;
 
 async function getUniqueFileName(basePath, extension) {
