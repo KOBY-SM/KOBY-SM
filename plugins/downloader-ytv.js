@@ -72,5 +72,5 @@ const handler = async (m, { conn, usedPrefix, text, command }) => {
 
 handler.help = ['ytv'];
 handler.tags = ['downloader'];
-handler.command = /^(yv)$/i;
+handler.command = /^(ytv)$/i;
 export default handler;
