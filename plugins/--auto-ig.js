@@ -1,99 +1,63 @@
-import axios from 'axios';
-import ffmpeg from 'fluent-ffmpeg';
 import fs from 'fs';
-import fetch from 'node-fetch';
+import ffmpeg from 'fluent-ffmpeg';
+import ffmpegPath from 'ffmpeg-static';
+import { igdl } from 'btch-downloader';
 
-let handler = async (m, { conn, text }) => {
-  // التحقق من صحة الرابط المرسل
-  const instagramUrlPattern = /^(https?:\/\/)?(www\.)?(instagram\.com|ig\.me)\/.+$/;
-  const messageText = m.text.trim();
+// تحديد مسار ffmpeg
+ffmpeg.setFfmpegPath(ffmpegPath);
 
-  if (!instagramUrlPattern.test(messageText)) {
-    return conn.reply(m.chat, '🪐 يرجى إدخال رابط إنستجرام صحيح.', m);
-  }
+const handler = async (m, { conn }) => {
+    const instagramUrlPattern = /^(https?:\/\/)?(www\.)?(instagram\.com|ig\.me)\/.+$/;
+    const messageText = m.text.trim();
 
-  m.reply(wait); // إعلام المستخدم أنه يتم التنزيل
-
-  try {
-    // الحصول على البيانات من API
-    let api = await axios.get(`https://apidl.asepharyana.cloud/api/downloader/igdl?url=${messageText}`);
-
-    let processedUrls = new Set();
-
-    for (let a of api.data.data) {
-      if (!processedUrls.has(a.url)) {
-        processedUrls.add(a.url);
-
-        // التحقق مما إذا كانت الوسائط صورة أو فيديو
-        if (a.url.includes('jpg') || a.url.includes('png') || a.url.includes('jpeg') || a.url.includes('webp') || a.url.includes('heic') || a.url.includes('tiff') || a.url.includes('bmp')) {
-          await conn.sendMessage(
-            m.chat,
-            { 
-              image: { url: a.url }, 
-              caption: '*✔️ تم تنزيل الصورة بنجاح!*' 
-            },
-            { quoted: m }
-          );
-        } else {
-          // تنزيل الفيديو
-          const videoBuffer = await downloadMedia(a.url);
-          const videoPath = `./src/tmp/${m.sender}.mp4`;
-          fs.writeFileSync(videoPath, videoBuffer);
-          const audioPath = videoPath.replace('.mp4', '.mp3');
-
-          // تحويل الفيديو إلى MP3
-          await convertToMp3(videoPath, audioPath);
-
-          // إرسال الفيديو
-          await conn.sendMessage(
-            m.chat,
-            { 
-              video: { url: a.url }, 
-              caption: '*✔️ تم تنزيل الفيديو بنجاح!*' 
-            },
-            { quoted: m }
-          );
-
-          // إرسال الصوت MP3
-          const mp3Buffer = fs.readFileSync(audioPath);
-          await conn.sendMessage(
-            m.chat,
-            { audio: mp3Buffer, fileName: `output.mp3`, mimetype: 'audio/mpeg', ptt: false },
-            { quoted: m }
-          );
-
-          // تنظيف الملفات المؤقتة
-          fs.unlinkSync(videoPath);
-          fs.unlinkSync(audioPath);
-        }
-      }
+    if (!instagramUrlPattern.test(messageText)) {
+        return; // إذا لم يكن الرابط من Instagram، لا تفعل شيئًا
     }
 
-  } catch (error) {
-    console.error('حدث خطأ أثناء التنزيل:', error);
-    m.reply('⚠️ حدث خطأ أثناء تنزيل الوسائط. حاول مرة أخرى لاحقًا.');
-  }
+    m.reply(wait);
+
+    try {
+        let res = await igdl(messageText);
+
+        for (let i of res) {
+            const videoPath = `./src/tmp/instagram_${Date.now()}.mp4`;
+            const audioPath = videoPath.replace('.mp4', '.mp3');
+
+            // تنزيل الفيديو
+            let buffer = await (await fetch(i.url)).buffer();
+            fs.writeFileSync(videoPath, buffer);
+
+            // إرسال الفيديو للمستخدم
+            await conn.sendFile(m.chat, videoPath, 'instagram.mp4', '*_✅ تم التنزيل!_*', m);
+
+            // استخراج الصوت من الفيديو باستخدام ffmpeg
+            await new Promise((resolve, reject) => {
+                ffmpeg(videoPath)
+                    .output(audioPath)
+                    .toFormat('mp3')
+                    .on('end', resolve)
+                    .on('error', reject)
+                    .run();
+            });
+
+            // إرسال الصوت المستخرج
+            await conn.sendMessage(
+                m.chat,
+                { audio: fs.readFileSync(audioPath), mimetype: 'audio/mpeg', ptt: false}, // إرسال الصوت كـ PTT
+                { quoted: m }
+            );
+
+            // حذف الملفات المؤقتة
+            fs.unlinkSync(videoPath);
+            fs.unlinkSync(audioPath);
+        }
+    } catch (error) {
+        console.error("❌ خطأ أثناء تنزيل فيديو Instagram:", error);
+        m.reply('⚠️ حدث خطأ أثناء التنزيل. حاول مرة أخرى لاحقًا.');
+    }
 };
 
-// دالة لتحميل الوسائط
-async function downloadMedia(url) {
-  const response = await fetch(url);
-  const buffer = await response.buffer();
-  return buffer;
-}
-
-// دالة لتحويل الفيديو إلى MP3
-function convertToMp3(inputPath, outputPath) {
-  return new Promise((resolve, reject) => {
-    ffmpeg(inputPath)
-      .toFormat('mp3')
-      .on('end', resolve)
-      .on('error', reject)
-      .save(outputPath);
-  });
-}
-
-// جعل البوت يعمل تلقائيًا عند إرسال رابط إنستجرام
+// تشغيل البوت تلقائيًا عند إرسال رابط Instagram
 handler.customPrefix = /^(https?:\/\/)?(www\.)?(instagram\.com|ig\.me)\/.+$/;
 handler.command = new RegExp(); // بدون أمر محدد
 
