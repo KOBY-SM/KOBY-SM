@@ -4,25 +4,26 @@ import PhoneNumber from 'awesome-phonenumber'
 
 let handler = async (m, { conn, usedPrefix: _p }) => {
 
-  let user = `@${m.sender.split('@')[0]}`
+  try {
+await conn.sendMessage(m.chat, { react: { text: '🩶', key: m.key } })
+    let user = `@${m.sender.split('@')[0]}`
 
-  let tags = {}
-  const defaultMenu = {
-    before: `
+    let tags = {}
+    const defaultMenu = {
+      before: `
 > *_乂 KOBY-MD - BOT_*
  
 _© ${conn.user.name}_ 
   %readmore
-  `.trimStart(),
-    header: '╭┉┉🩵┉≻ *“%category”* ≺┉🩶┉┉',
-    body: `┆ \t ♧ _%cmd%islimit%isPremium_ `,
-    footer: '┆',
-    after: `╰┉┉🌼┉≻\t _© ${conn.user.name}_ \t`,
-  }
+      `.trimStart(),
+      header: '╭┉┉🩵┉≻ *“%category”* ≺┉🩶┉┉',
+      body: `┆ \t ♧ _%cmd%islimit%isPremium_ `,
+      footer: '┆',
+      after: `╰┉┉🌼┉≻\t _© ${conn.user.name}_ \t`,
+    }
 
-  try {
-    let name = m.pushName || conn.getName(m.sender)
-    let d = new Date(new Date + 3600000)
+    let name = m.pushName || conn.getName(m.sender) || "مستخدم"
+    let d = new Date(new Date() + 3600000)
     let locale = 'en'
     let date = d.toLocaleDateString(locale, {
       day: 'numeric',
@@ -30,33 +31,17 @@ _© ${conn.user.name}_
       year: 'numeric',
       timeZone: 'Africa/Casablanca'
     })
-    let time = d.toLocaleTimeString(locale, { timeZone: 'Asia/Kolkata' })
-    time = time.replace(/[.]/g, ':')
-    let _muptime
-    if (process.send) {
-      process.send('uptime')
-      _muptime = await new Promise(resolve => {
-        process.once('message', resolve)
-        setTimeout(resolve, 1000)
-      }) * 1000
-    }
+    let time = d.toLocaleTimeString(locale, { timeZone: 'Asia/Kolkata' }).replace(/[.]/g, ':')
 
-    let _uptime
-    if (process.send) {
-      process.send('uptime')
-      _uptime = await new Promise(resolve => {
-        process.once('message', resolve)
-        setTimeout(resolve, 1000)
-      }) * 1000
-    }
-
-    let totalreg = Object.keys(global.db.data.users).length
-    let platform = os.platform()
-    let muptime = clockString(_muptime)
+    let _uptime = process.uptime() * 1000
     let uptime = clockString(_uptime)
-    let help = Object.values(global.plugins).filter(plugin => !plugin.disabled).map(plugin => {
+
+    let totalreg = global.db?.data?.users ? Object.keys(global.db.data.users).length : 0
+    let platform = os.platform()
+
+    let help = Object.values(global.plugins || {}).filter(plugin => !plugin.disabled).map(plugin => {
       return {
-        help: Array.isArray(plugin.tags) ? plugin.help : [plugin.help],
+        help: Array.isArray(plugin.help) ? plugin.help : [plugin.help],
         tags: Array.isArray(plugin.tags) ? plugin.tags : [plugin.tags],
         prefix: 'customPrefix' in plugin,
         limit: plugin.limit,
@@ -64,16 +49,23 @@ _© ${conn.user.name}_
         enabled: !plugin.disabled,
       }
     })
-    for (let plugin of help)
-      if (plugin && 'tags' in plugin)
-        for (let tag of plugin.tags)
+
+    for (let plugin of help) {
+      if (plugin && 'tags' in plugin) {
+        for (let tag of plugin.tags) {
           if (!(tag in tags) && tag) tags[tag] = tag
-    conn.menu = conn.menu ? conn.menu : {}
+        }
+      }
+    }
+
+    conn.menu = conn.menu || {}
+
     let before = conn.menu.before || defaultMenu.before
     let header = conn.menu.header || defaultMenu.header
     let body = conn.menu.body || defaultMenu.body
     let footer = conn.menu.footer || defaultMenu.footer
     let after = conn.menu.after || defaultMenu.after
+
     let _text = [
       before,
       ...Object.keys(tags).map(tag => {
@@ -91,38 +83,38 @@ _© ${conn.user.name}_
       }),
       after
     ].join('\n')
+
     let text = typeof conn.menu == 'string' ? conn.menu : typeof conn.menu == 'object' ? _text : ''
     let replace = {
       '%': '%',
-      p: _p, uptime, muptime,
-      me: conn.getName(conn.user.jid),
+      p: _p, uptime,
+      me: conn.getName(conn.user.jid) || "البوت",
       name, date, time, platform, _p, totalreg,
       readmore: readMore
     }
     text = text.replace(new RegExp(`%(${Object.keys(replace).sort((a, b) => b.length - a.length).join`|`})`, 'g'), (_, name) => '' + replace[name])
 
-    const vi = ['https://i.ibb.co/XbvXSnZ/IMG-20241208-114456.jpg',
-    'https://i.ibb.co/XbvXSnZ/IMG-20241208-114456.jpg',
-    'https://i.ibb.co/XbvXSnZ/IMG-20241208-114456.jpg', 'https://i.ibb.co/XbvXSnZ/IMG-20241208-114456.jpg',     'https://i.ibb.co/XbvXSnZ/IMG-20241208-114456.jpg', 'https://i.ibb.co/XbvXSnZ/IMG-20241208-114456.jpg',     'https://i.ibb.co/XbvXSnZ/IMG-20241208-114456.jpg']
+    const vi = [
+      'https://qu.ax/HzRPk.jpg',
+      'https://qu.ax/HzRPk.jpg',
+      'https://qu.ax/HzRPk.jpg'
+    ]
 
-    var vid = vi[Math.floor(Math.random() * (vi.length))]
+    let vid = vi[Math.floor(Math.random() * vi.length)]
 
     let hi = `\n\n\t\t _السلام عليكم يا ${name}_ \t\t\n\n`
 
-    const totag = { contextInfo: { mentionedJid: [text] }}
+    const totag = { contextInfo: { mentionedJid: [m.sender] }}
 
-    let mtag = text + totag
+    let ppl = await conn.profilePictureUrl(m.sender, 'image').catch(() => 'https://qu.ax/HzRPk.jpg')
+    let ppb = await conn.profilePictureUrl(conn.user.jid, 'image').catch(() => 'https://qu.ax/HzRPk.jpg')
 
-    let ppl = await( await conn.profilePictureUrl(m.sender, 'image').catch(() => 'https://telegra.ph/file/24fa902ead26340f3df2c.png'))
-
-    let ppb = await( await conn.profilePictureUrl(conn.user.jid, 'image').catch(() => 'https://telegra.ph/file/24fa902ead26340f3df2c.png'))
-
-    
-    await conn.relayMessage(m.chat, { reactionMessage: { key: m.key, text: '✅'  }}, { messageId: m.key.id })
+    // إرسال رمز التفاعل ✅
+    await conn.sendMessage(m.chat, { react: { text: '✅', key: m.key } })
 
     // إرسال الصورة مع المعلومات
     await conn.sendMessage(m.chat, { 
-      image: { url: 'https://qu.ax/hvhcP.jpg' }, 
+      image: { url: 'https://qu.ax/HzRPk.jpg' }, 
       caption: text.trim(), 
       contextInfo: { 
         externalAdReply: { 
@@ -135,12 +127,14 @@ _© ${conn.user.name}_
         } 
       }
     })
+
   } catch (e) {
-    m.reply('An error occurred')
-    m.reply(e)
+    console.error(e)
+    m.reply('حدث خطأ: ' + e.message)
   }
 }
-handler.command = /^(menu|help|\?)$/i
+
+handler.command = /^(mu|help|\?)$/i
 handler.exp = 3
 
 export default handler
