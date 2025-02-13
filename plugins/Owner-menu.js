@@ -5,7 +5,7 @@ import PhoneNumber from 'awesome-phonenumber'
 let handler = async (m, { conn, usedPrefix: _p }) => {
 
   try {
-await conn.sendMessage(m.chat, { react: { text: '🩶', key: m.key } })
+
     let user = `@${m.sender.split('@')[0]}`
 
     let tags = {}
@@ -110,7 +110,12 @@ _© ${conn.user.name}_
     let ppb = await conn.profilePictureUrl(conn.user.jid, 'image').catch(() => 'https://qu.ax/HzRPk.jpg')
 
     // إرسال رمز التفاعل ✅
-    await conn.sendMessage(m.chat, { react: { text: '✅', key: m.key } })
+    await conn.sendMessage(m.chat, { react: { text: '🍁', key:
+ m.key } })
+
+
+
+await conn.sendMessage(m.chat, { react: { text: '🍃', key: m.key } })
 
     // إرسال الصورة مع المعلومات
     await conn.sendMessage(m.chat, { 
@@ -134,7 +139,7 @@ _© ${conn.user.name}_
   }
 }
 
-handler.command = /^(mu|help|\?)$/i
+handler.command = /^(menu|help|\?)$/i
 handler.exp = 3
 
 export default handler
