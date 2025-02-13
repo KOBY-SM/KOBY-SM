@@ -128,7 +128,7 @@ await conn.sendMessage(m.chat, { react: { text: '🍃', key: m.key } })
           thumbnailUrl: ppb, 
           sourceUrl: "", 
           mediaType: 1, 
-          renderLargerThumbnail: false 
+          renderLargerThumbnail: true 
         } 
       }
     })
