@@ -76,6 +76,7 @@
     "fs": "^0.0.1-security",
     "google-it": "^1.6.3",
     "google-play-scraper": "^10.0.0",
+    "@distube/ytdl-core": "^4.13.5",
 "youtube-dl-exec": "*",
     "hispamemes": "^1.0.7",
     "human-readable": "^0.2.1",
