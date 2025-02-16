@@ -1,77 +1,44 @@
+import fs from 'fs';
+import { promisify } from 'util';
+import fetch from 'node-fetch';
 
+const writeFile = promisify(fs.writeFile);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-*/import fetch from 'node-fetch'
-import ffmpeg from 'fluent-ffmpeg'
-import fs from 'fs'
-
-let handler = async (m, { conn, command, text, usedPrefix }) => {
-  if (!text) return conn.reply(m.chat, '❀ Ingresa un link de un video de youtube', m)
-  //si borras creditos eri gei 👀
-m.reply(wait)
-  try {
-    let api = await fetch(`https://api.davidcyriltech.my.id/download/ytmp3?url=${text}`)
-    let json = await api.json()
-    let { title, download_url } = json.result
-
-    // Descargar الملف الصوتي
-    const response = await fetch(download_url)
-    const buffer = await response.buffer()
-
-    // حفظ الصوت في ملف مؤقت
-    const tempFile = `temp_${Date.now()}.mp3`
-    fs.writeFileSync(tempFile, buffer)
-
-    // تحويل الصوت إلى 48kbps باستخدام ffmpeg
-    const outputFile = `output_${Date.now()}.mp3`
+async function downloadYtAudio(urls, conn, chatId) {
+    const urlList = urls.split('\n').filter(url => url.startsWith('http'));
     
-    await new Promise((resolve, reject) => {
-      ffmpeg(tempFile)
-        .audioBitrate(64) // تقليل معدل البت إلى 48kbps
-        .audioChannels(1) // تحويل الصوت إلى قناة واحدة (Mono)
-        .audioFrequency(22050) // تقليل معدل العينات إلى 22.05kHz
-        .save(outputFile) // حفظ الملف المحول
-        .on('end', resolve)
-        .on('error', reject)
-    })
+    for (const url of urlList) {
+        try {
+            // تحميل الصوت مباشرة بدون جلب معلومات الفيديو
+            const audioRes = await fetch(`https://ytcdn.project-rian.my.id/audio?url=${encodeURIComponent(url)}&bitrate=128`);
+            const audioBuffer = await audioRes.arrayBuffer();
 
-    // إرسال الملف الصوتي المحول
-    const audioBuffer = fs.readFileSync(outputFile)
-    await conn.sendMessage(m.chat, {
-      audio: audioBuffer,
-      mimetype: 'audio/mpeg',
-      fileName: `${title}.mp3`,
-      caption: `🎶 *${title}*`,
-    }, { quoted: m })
+            const filePath = `audio_${Math.floor(Math.random() * 99999)}.mp3`; // اسم عشوائي للملف
+            await writeFile(filePath, Buffer.from(audioBuffer)); // حفظ الملف مؤقتًا
 
-    // تنظيف الملفات المؤقتة
-    fs.unlinkSync(tempFile)
-    fs.unlinkSync(outputFile)
+            // إرسال الملف كرسالة صوتية (بدون عنوان أو معلومات)
+            await conn.sendMessage(chatId, {
+                audio: fs.readFileSync(filePath),
+                mimetype: 'audio/mpeg',
+                ptt: false // يتم إرساله كمقطع صوتي وليس ملاحظة صوتية
+            });
 
-  } catch (error) {
-    console.error(error)
-    m.reply('❌ حدث خطأ أثناء تحميل الأغنية. حاول مرة أخرى.')
-  }
+            fs.unlinkSync(filePath); // حذف الملف بعد الإرسال
+        } catch (error) {
+            console.error(`❌ خطأ أثناء معالجة ${url}:`, error);
+        }
+    }
 }
 
-handler.command = ['ytmp3']
+// المعالج للروبوت
+let handler = async (m, { conn, text }) => {
+    if (!text) return m.reply(`❗️ يرجى إدخال URL`);
+    if (!/http.+youtu/.test(text)) return m.reply('⚠️ أدخل URL يوتيوب صالح');
+m.reply(wait);
 
-export default handler*/
+    await downloadYtAudio(text, conn, m.chat);
+};
+
+handler.command = /^(ytmp3)$/i;
+
+export default handler;
